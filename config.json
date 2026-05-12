@@ -1,0 +1,119 @@
+{
+    "name": "RandIMI Integration",
+    "namespace": "IMIREDCapModules\\RandIMIIntegration",
+    "description": "An external module for the RandIMI randomization service.",
+    "authors": [
+        {
+            "name": "Daniel Preciado-Marquez",
+            "email": "daniel.preciado-marquez@uni-muenster.de",
+            "institution": "Institute of Medical Informatics in Muenster"
+        },
+        {
+            "name": "Leonard Greulich",
+            "email": "leonard.greulich@uni-muenster.de",
+            "institution": "Institute of Medical Informatics in Muenster"
+        },
+        {
+            "name": "Tobias Brix",
+            "email": "tobias.brix@uni-muenster.de",
+            "institution": "Institute of Medical Informatics in Muenster"
+        }
+    ],
+    "framework-version": 16,
+    "compatibility": {
+        "php-version-min": "5.4.0",
+        "php-version-max": "",
+        "redcap-version-min": "8.5.2",
+        "redcap-version-max": ""
+    },
+    "links": {
+        "project": [
+            {
+                "name": "RandIMI",
+                "icon": "tags",
+                "url": "index.php"
+            }
+        ]
+    },
+    "project-settings": [
+        {
+            "key": "language",
+            "name": "Language of the form",
+            "required": true,
+            "type": "dropdown",
+            "default": "en",
+            "choices": [
+                {
+                    "value": "en_US",
+                    "name": "English"
+                },
+                {
+                    "value": "de_DE",
+                    "name": "German"
+                }
+            ]
+        },
+        {
+            "key": "server-url",
+            "name": "Base URL of the RandIMI server (until and including .../api)",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "study-id",
+            "name": "Study ID",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "username",
+            "name": "Username (HTTP Basic Auth)",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "password",
+            "name": "Password (HTTP Basic Auth)",
+            "required": true,
+            "type": "text"
+        },
+        {
+            "key": "use-tunnel",
+            "name": "Use the REDCap server as a proxy to tunnel all client requests",
+            "type": "checkbox"
+        },
+        {
+            "key": "add-edit-button",
+            "name": "Show a RandIMI button on the Add / Edit Records and Record Status Dashboard pages",
+            "type": "checkbox"
+        },
+        {
+            "key": "custom-add-edit-button-text",
+            "name": "Optional custom text that is to be displayed on the RandIMI button",
+            "type": "text",
+            "branchingLogic": {
+                "field": "add-edit-button",
+                "value": "true"
+            }
+        },
+        {
+            "key": "mainzelliste-descriptive-text",
+            "name": "<br><br><br><br><br><h4>Connect to the Mainzelliste Pseudonymization Service</h4>With the following optional function you can automate an entire pseudonymization and randomization workflow using the <a href='https://imigitlab.uni-muenster.de/published/redcapmainzellisteintegration' target='_blank'>Mainzelliste Pseudonymization Service</a>.<br><br><strong>Important:</strong> The external module <a href='https://imigitlab.uni-muenster.de/published/redcapmainzellisteintegration' target='_blank'>Mainzelliste Integration</a> needs to be installed and configured accordingly. Consult the readme for details.",
+            "type": "descriptive"
+        },
+        {
+            "key": "activate-mainzelliste-connection",
+            "name": "Activate connection to Mainzelliste Integration",
+            "type": "checkbox"
+        },
+        {
+            "key": "mainzelliste-auto-submit",
+            "name": "Automatically submit the form after the pseudonym was passed over by the Mainzelliste Integration module",
+            "type": "checkbox",
+            "branchingLogic": {
+                "field": "activate-mainzelliste-connection",
+                "value": "true"
+            }
+        }
+    ]
+}

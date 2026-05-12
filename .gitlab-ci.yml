@@ -1,0 +1,62 @@
+stages:
+    - sync
+
+# Creates a squashed release commit and a release on GitHub when a GitLab tag is created
+# Preparation steps:
+# 1. Set names of the GitLab and GitHub branches in the variables below
+# 2. Create a GitHub personal access token with repo and workflow scopes and set the value to the GITHUB_TOKEN variable
+# 3. Set the GITHUB_REPO variable to the repository name on GitHub (e.g., github.com/imi-ms/REDCap-RandIMI-Integration)
+# 4. Set the GIT_USER_NAME and GIT_USER_EMAIL variables to the name and email of the user that will be used to commit the release
+sync_to_github:
+    stage: sync
+    image: alpine:latest
+    rules:
+        - if: '$CI_COMMIT_TAG != null'
+#        - if: $CI_COMMIT_REF_NAME == "<your-branch-name>"
+    variables:
+        GITLAB_BRANCH: "master"
+        GITHUB_BRANCH: "main"
+
+        GIT_STRATEGY: fetch
+        GIT_DEPTH: "0"
+    before_script:
+        # Setup git
+        - apk add --no-cache git
+        - git config --global user.email "$GIT_USER_EMAIL"
+        - git config --global user.name  "$GIT_USER_NAME"
+
+        # Get the version from .version
+        - export VERSION=$(tr -d '[:space:]' < .version)
+        - export GIT_MERGE_MSG="Release v${VERSION}"
+
+        # Ensure both sides are available locally
+        - git fetch origin "$GITLAB_BRANCH"
+
+        # Add GitHub remote and fetch the target branch
+        - git remote add github "https://$GITHUB_TOKEN@$GITHUB_REPO"
+        - git fetch github "$GITHUB_BRANCH"
+    script:
+        # Start from the GitHub branch tip
+        - git checkout -B "$GITHUB_BRANCH" "github/$GITHUB_BRANCH"
+
+        # Replace the entire working tree with the GitLab branch snapshot
+        # (this reliably propagates deletions too)
+        - git rm -r --ignore-unmatch .
+        - git checkout "origin/$GITLAB_BRANCH" -- .
+        - git add -A
+
+        # Commit only if something actually changed
+        - |
+            if git diff --cached --quiet; then
+              echo "No changes to sync."
+              exit 0
+            fi
+
+        - git commit -m "$GIT_MERGE_MSG"
+
+        # Push the new snapshot commit
+        - git push github "$GITHUB_BRANCH" --force-with-lease
+
+    after_script:
+        # Clean up to prevent token exposure
+        - git remote remove github

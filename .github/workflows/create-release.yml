@@ -1,0 +1,46 @@
+name: Create Release
+
+on:
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: write
+
+concurrency:
+    group: "pages"
+    cancel-in-progress: true
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v6
+
+            -   name: Read version from .version
+                shell: bash
+                run: |
+                    VERSION=$(tr -d '[:space:]' < .version)
+                    echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+            -   name: Prepare dist
+                shell: bash
+                run: |
+                    mkdir -p dist
+                    cp -R css js php config.json index.php LICENSE.md RandIMIIntegration.php README.md dist/
+
+            -   name: Package dist as zip
+                shell: bash
+                run: |
+                    cd dist
+                    zip -r ../randimi-integration_v${VERSION}.zip .
+
+            -   name: Create Release
+                uses: softprops/action-gh-release@v2
+                with:
+                    tag_name: v${{ env.VERSION }}
+                    name: REDCap-RandIMI-Integration v${{ env.VERSION }}
+                    files: randimi-integration_v${{ env.VERSION }}.zip
+                    generate_release_notes: true
