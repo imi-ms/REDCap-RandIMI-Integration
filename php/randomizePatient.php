@@ -12,16 +12,15 @@
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_HTTP200ALIASES, (array)400);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json", "Accept-Language: " . RANDIMI_LANGUAGE));
-    // curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents('php://input'));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $_POST["randimi_data"]);
     $response = curl_exec($ch);
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
     curl_close($ch);
 
-    if ($httpcode == 200) {
-        header("Content-Type: application/json");
-    } else {
-        http_response_code($httpcode);
-        echo $reponse;
-    }
+    header("Content-Type: " . $contentType);
+    http_response_code($httpcode);
+
+    echo $response;
 ?>

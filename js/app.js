@@ -141,6 +141,7 @@ function setEventListeners() {
 }
 
 function hideWarnings() {
+    $("#generic-warning").hide();
     $("#no-connection-warning").hide();
     $("#registered-before-warning").hide();
     $("#registered-before-warning-text").hide();
@@ -163,14 +164,22 @@ function sendRequest() {
     requestBody["pseudonym"] = $("#pseudonym").val();
     requestBody["studyStrataParams"] = studyStrataParams;
 
+    const formData = new FormData();
+    formData.append("randimi_data", JSON.stringify(requestBody));
+    formData.append("redcap_csrf_token", randimi.csrfToken);
+
     const url = prepareUrl(randimi.randomizePatientUrl);
+
+    const contentType = randimi.useTunnel ? false : "application/json";
+    const data = randimi.useTunnel ? formData : JSON.stringify(requestBody);
 
     $.ajax({
         url: url,
         type: "POST",
         headers: getHeaders(),
-        contentType: "application/json",
-        data: JSON.stringify(requestBody),
+        data: data,
+        processData: false,
+        contentType: contentType,
         dataType: "json",
         success: function(arm) {
             resolveArm(arm.subject);

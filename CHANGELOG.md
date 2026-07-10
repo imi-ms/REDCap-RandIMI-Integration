@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.7.1
+- Fixed missing CSRF token when using the REDCap tunnel [(#1)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/1)
+- Fixed some warnings not being hidden after form resubmission [(#2)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/2)
+
 ## 1.7.0
 - Requires RandIMI API v2
 - Validate study setup in RandIMI when opening the randomization page

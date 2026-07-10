@@ -1,12 +1,14 @@
 <?php
     require_once APP_PATH_DOCROOT . "ProjectGeneral/header.php";
 
+
     $groupNames = REDCap::getGroupNames(false);
     $userName = strtolower(USERID);
     $userRights = REDCap::getUserRights($userName)[$userName];
     $eventNames = REDCap::getEventNames(false, true);
 	$instruments = REDCap::getInstrumentNames();
 
+	$csrfToken = $module->getCSRFToken();
     $language = $module->getProjectSetting("language");
     $serverUrl = $module->getProjectSetting("server-url");
     $studyId = $module->getProjectSetting("study-id");
@@ -32,6 +34,7 @@
     var randimi = {};
 
     randimi.appPathWebroot = <?php echo json_encode(APP_PATH_WEBROOT)?>;
+    randimi.csrfToken = <?php echo json_encode($csrfToken)?>;
     randimi.projectId = <?php echo json_encode($project_id)?>;
 
     randimi.groupNames = <?php echo json_encode($groupNames)?>;
