@@ -1,11 +1,13 @@
 stages:
     - sync
+    - package
+    - release
 
 # Creates a squashed release commit and a release on GitHub when a GitLab tag is created
 # Preparation steps:
 # 1. Set names of the GitLab and GitHub branches in the variables below
 # 2. Create a GitHub personal access token with repo and workflow scopes and set the value to the GITHUB_TOKEN variable
-# 3. Set the GITHUB_REPO variable to the repository name on GitHub (e.g., github.com/imi-ms/REDCap-RandIMI-Integration)
+# 3. Set the GITHUB_REPO variable to the repository name on GitHub (e.g., github.com/imi-ms/REDCap-RandIMI-Integration.git)
 # 4. Set the GIT_USER_NAME and GIT_USER_EMAIL variables to the name and email of the user that will be used to commit the release
 sync_to_github:
     stage: sync
@@ -33,7 +35,8 @@ sync_to_github:
         - git fetch origin "$GITLAB_BRANCH"
 
         # Add GitHub remote and fetch the target branch
-        - git remote add github "https://$GITHUB_TOKEN@$GITHUB_REPO"
+        # The token must be passed as the password; a username-only URL makes git prompt for a password on push
+        - git remote add github "https://x-access-token:${GITHUB_TOKEN}@${GITHUB_REPO}"
         - git fetch github "$GITHUB_BRANCH"
     script:
         # Start from the GitHub branch tip
@@ -60,3 +63,49 @@ sync_to_github:
     after_script:
         # Clean up to prevent token exposure
         - git remote remove github
+
+# Builds the same release zip as the GitHub "Create Release" workflow
+package:
+    stage: package
+    image: alpine:latest
+    rules:
+        - if: '$CI_COMMIT_TAG != null'
+    script:
+        - apk add --no-cache zip
+        - export VERSION=$(tr -d '[:space:]' < .version)
+        - mkdir -p dist
+        - cp -R css js php config.json index.php LICENSE.md RandIMIIntegration.php README.md dist/
+        - (cd dist && zip -r "../randimi_integration_v${VERSION}.zip" .)
+
+        # Pass the version and this job's ID on to the release job
+        - echo "VERSION=${VERSION}" >> release.env
+        - echo "PACKAGE_JOB_ID=${CI_JOB_ID}" >> release.env
+    artifacts:
+        paths:
+            - randimi_integration_v*.zip
+        expire_in: never
+        reports:
+            dotenv: release.env
+
+# Creates a GitLab release for the tag and links the zip built by the package job
+create_release:
+    stage: release
+    image: registry.gitlab.com/gitlab-org/release-cli:latest
+    rules:
+        - if: '$CI_COMMIT_TAG != null'
+    needs:
+        - job: package
+          artifacts: true
+    # release-cli is called directly because the multi-line release notes can't be passed
+    # through the release keyword (dotenv variables don't support multi-line values)
+    script:
+        # Extract the release notes for this version from CHANGELOG.md (section "## <version> ...")
+        - NOTES=$(awk -v v="$VERSION" '{ sub(/\r$/, "") } /^## / { if (f) exit; f = ($2 == v); next } f' CHANGELOG.md)
+        - if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then NOTES="Release v${VERSION}"; fi
+        - ASSET_URL="${CI_PROJECT_URL}/-/jobs/${PACKAGE_JOB_ID}/artifacts/raw/randimi_integration_v${VERSION}.zip"
+        - >
+            release-cli create
+            --tag-name "$CI_COMMIT_TAG"
+            --name "REDCap-RandIMI-Integration v${VERSION}"
+            --description "$NOTES"
+            --assets-link "{\"name\":\"randimi_integration_v${VERSION}.zip\",\"url\":\"${ASSET_URL}\",\"link_type\":\"package\"}"

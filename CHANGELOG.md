@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.7.2 (2026-10-27)
+- Allow not all RandIMI sites being mapped to DAGs in REDCap [(#3)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/3)
+- Fixed validation of arms in REDCap picks up arms multiple times if they have multiple events [(#4)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/4)
+
 ## 1.7.1
 - Fixed missing CSRF token when using the REDCap tunnel [(#1)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/1)
 - Fixed some warnings not being hidden after form resubmission [(#2)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/2)
@@ -18,7 +22,7 @@ All notable changes to this project will be documented in this file.
 - Updated setup, authors, and citation in README
 
 ## 1.5
-- In case of REDCap as a proxy, the project language will be used instead of the browser languae
+- In case of REDCap as a proxy, the project language will be used instead of the browser language
 
 ## 1.4
 

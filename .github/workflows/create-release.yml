@@ -35,12 +35,25 @@ jobs:
                 shell: bash
                 run: |
                     cd dist
-                    zip -r ../randimi-integration_v${VERSION}.zip .
+                    zip -r ../randimi_integration_v${VERSION}.zip .
+
+            -   name: Extract release notes from CHANGELOG.md
+                id: notes
+                shell: bash
+                run: |
+                    NOTES=$(awk -v v="$VERSION" '{ sub(/\r$/, "") } /^## / { if (f) exit; f = ($2 == v); next } f' CHANGELOG.md)
+                    if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then NOTES="Release v${VERSION}"; fi
+                    {
+                        echo "body<<EOF_RELEASE_NOTES"
+                        echo "$NOTES"
+                        echo "EOF_RELEASE_NOTES"
+                    } >> "$GITHUB_OUTPUT"
 
             -   name: Create Release
                 uses: softprops/action-gh-release@v2
                 with:
                     tag_name: v${{ env.VERSION }}
                     name: REDCap-RandIMI-Integration v${{ env.VERSION }}
-                    files: randimi-integration_v${{ env.VERSION }}.zip
+                    files: randimi_integration_v${{ env.VERSION }}.zip
+                    body: ${{ steps.notes.outputs.body }}
                     generate_release_notes: true

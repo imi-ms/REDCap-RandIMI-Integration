@@ -344,25 +344,24 @@ function validateStudySetup(studyResource) {
 
     // Validate study arms
     const redcapArms = Object.values(randimi.eventNames).map(eventName => eventName.substring(eventName.lastIndexOf(": ") + 2, eventName.lastIndexOf(")")));
-    if (redcapArms.length !== studyResource.arms.length) {
+    const uniqueRedcapArms = [...new Set(redcapArms)];
+    if (uniqueRedcapArms.length !== studyResource.arms.length) {
         hasErrors = true;
-        validationErrorArms(redcapArms, studyResource.arms.map(arm => arm.apiId));
+        validationErrorArms(uniqueRedcapArms, studyResource.arms.map(arm => arm.apiId));
     }
     for (const arm of studyResource.arms) {
-        if (!redcapArms.includes(arm.apiId)) {
+        if (!uniqueRedcapArms.includes(arm.apiId)) {
             hasErrors = true;
-            validationErrorArms(redcapArms, studyResource.arms.map(arm => arm.apiId));
+            validationErrorArms(uniqueRedcapArms, studyResource.arms.map(arm => arm.apiId));
         }
     }
 
     // Validate DAGs
+    // Only validate that all REDCap DAGs are present in RandIMI.
+    // It is allowed that some RandIMI sites are not mapped to REDCap DAGs.
     const redcapSites = Object.keys(randimi.groupNames);
-    if (redcapSites.length !== studyResource.sites.length) {
-        hasErrors = true;
-        validationErrorSites(redcapSites, studyResource.sites.map(dag => dag.apiId));
-    }
-    for (const dag of studyResource.sites) {
-        if (!redcapSites.includes(dag.apiId)) {
+    for (const dag of redcapSites) {
+        if (!studyResource.sites.some(site => site.apiId === dag)) {
             hasErrors = true;
             validationErrorSites(redcapSites, studyResource.sites.map(dag => dag.apiId));
         }
