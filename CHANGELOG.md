@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.7.3 (2026-11-23)
+- Fixed missing messages and titles for validation error messages [(#5)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/5)
+- Fixed CSRF token being appended to JSON requests when not using the REDCap tunnel [(#6)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/6)
+
 ## 1.7.2 (2026-10-27)
 - Allow not all RandIMI sites being mapped to DAGs in REDCap [(#3)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/3)
 - Fixed validation of arms in REDCap picks up arms multiple times if they have multiple events [(#4)](https://github.com/imi-ms/REDCap-RandIMI-Integration/issues/4)

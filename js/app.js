@@ -151,7 +151,7 @@ function hideWarnings() {
     $("#no-matching-arm-warning").hide();
 }
 
-function sendRequest() {
+async function sendRequest() {
     randimi.lastRandomizationConflict = null;
 
     const studyStrataParams = {};
@@ -170,73 +170,84 @@ function sendRequest() {
 
     const url = prepareUrl(randimi.randomizePatientUrl);
 
-    const contentType = randimi.useTunnel ? false : "application/json";
-    const data = randimi.useTunnel ? formData : JSON.stringify(requestBody);
+    const headers = getHeaders();
+    headers["Accept"] = "application/json";
+    // When using the tunnel, the browser sets the multipart Content-Type (including the boundary) itself
+    if (!randimi.useTunnel) headers["Content-Type"] = "application/json";
+    const body = randimi.useTunnel ? formData : JSON.stringify(requestBody);
 
-    $.ajax({
-        url: url,
-        type: "POST",
-        headers: getHeaders(),
-        data: data,
-        processData: false,
-        contentType: contentType,
-        dataType: "json",
-        success: function(arm) {
-            resolveArm(arm.subject);
-        },
-        error: function(error) {
-            switch (error.status) {
-                case 400:
-                case 406:
-                    $("#generic-warning p").text(error.responseJSON.detail);
-                    $("#generic-warning").show();
-                    break;
-                case 409:
-                    // The pseudonym is already registered, so show a warning
-                    $("#registered-before-warning").show();
+    let response;
+    try {
+        response = await fetch(url, {
+            method: "POST",
+            headers: headers,
+            body: body
+        });
+    } catch (error) {
+        // Network error, the server could not be reached
+        $("#no-connection-warning").show();
+        console.log("DEBUGGING - Error while randomizing patient:");
+        console.log(error);
+        return;
+    }
 
-                    const errorDetails = error.responseJSON.details.existingSubject;
-                    if (errorDetails != null) {
-                        randimi.lastRandomizationConflict = errorDetails;
+    const responseJSON = await response.json().catch(() => null);
 
-                        // Show the button to view the patient if the user has access to the DAG
-                        if (randimi.userRights.group_id != null && randimi.userRights.group_id !== "") {
-                            // If the user is assigned to a DAG, only show the button if the user has access to the patient's DAG.
-                            if (randimi.userRights.group_id === errorDetails.site.apiId) {
-                                document.getElementById("registered-before-button").style.display = "";
-                            } else {
-                                document.getElementById("registered-before-button").style.display = "none";
-                            }
-                        } else {
-                            document.getElementById("registered-before-button").style.display = "";
-                        }
+    if (response.ok && responseJSON != null) {
+        resolveArm(responseJSON.subject);
+        return;
+    }
 
-                        // Show the message based on the similarities between the new patient and the existing patient
-                        if (errorDetails.site.apiId !== $("#location").val()) {
-                            if (doStratificationParameterMatch(errorDetails, studyStrataParams)) {
-                                $("#registered-before-warning-text-different-site").show();
-                            } else {
-                                $("#registered-before-warning-text-different-site-strata").show();
-                            }
-                        } else {
-                            if (doStratificationParameterMatch(errorDetails, studyStrataParams)) {
-                                $("#registered-before-warning-text").show();
-                            } else {
-                                $("#registered-before-warning-text-different-strata").show();
-                            }
-                        }
+    switch (response.status) {
+        case 400:
+        case 406:
+            $("#generic-warning p").text(responseJSON?.detail);
+            $("#generic-warning").show();
+            break;
+        case 409:
+            // The pseudonym is already registered, so show a warning
+            $("#registered-before-warning").show();
+
+            const errorDetails = responseJSON?.details?.existingSubject;
+            if (errorDetails != null) {
+                randimi.lastRandomizationConflict = errorDetails;
+
+                // Show the button to view the patient if the user has access to the DAG
+                if (randimi.userRights.group_id != null && randimi.userRights.group_id !== "") {
+                    // If the user is assigned to a DAG, only show the button if the user has access to the patient's DAG.
+                    if (randimi.userRights.group_id === errorDetails.site.apiId) {
+                        document.getElementById("registered-before-button").style.display = "";
                     } else {
-                        $("#registered-before-warning-text").show();
+                        document.getElementById("registered-before-button").style.display = "none";
                     }
-                    break;
-                default:
-                    $("#no-connection-warning").show();
-            }
+                } else {
+                    document.getElementById("registered-before-button").style.display = "";
+                }
 
-            console.log("DEBUGGING - Error while randomizing patient:");
-            console.log(error);
-        }
-    });
+                // Show the message based on the similarities between the new patient and the existing patient
+                if (errorDetails.site.apiId !== $("#location").val()) {
+                    if (doStratificationParameterMatch(errorDetails, studyStrataParams)) {
+                        $("#registered-before-warning-text-different-site").show();
+                    } else {
+                        $("#registered-before-warning-text-different-site-strata").show();
+                    }
+                } else {
+                    if (doStratificationParameterMatch(errorDetails, studyStrataParams)) {
+                        $("#registered-before-warning-text").show();
+                    } else {
+                        $("#registered-before-warning-text-different-strata").show();
+                    }
+                }
+            } else {
+                $("#registered-before-warning-text").show();
+            }
+            break;
+        default:
+            $("#no-connection-warning").show();
+    }
+
+    console.log("DEBUGGING - Error while randomizing patient:");
+    console.log(response, responseJSON);
 }
 
 /**
@@ -311,22 +322,28 @@ function prepareUrl(url) {
 /**
  * Fetches study resource from the RandIMI API.
  */
-function fetchStudyResource() {
+async function fetchStudyResource() {
     const url = prepareUrl(randimi.getStudyUrl);
 
-    $.ajax({
-        url: url,
-        type: "GET",
-        headers: getHeaders(),
-        success: function(studyResource) {
-            validateStudySetup(studyResource);
-            addDynamicInputs(studyResource.strata);
-        },
-        error: function(error) {
-            console.log(error);
-            $("#no-connection-warning").show();
+    /** @type {StudyResource} */
+    let studyResource;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            headers: getHeaders()
+        });
+        if (!response.ok) {
+            throw new Error("Request failed with status " + response.status);
         }
-    });
+        studyResource = await response.json();
+    } catch (error) {
+        console.log(error);
+        $("#no-connection-warning").show();
+        return;
+    }
+
+    validateStudySetup(studyResource);
+    addDynamicInputs(studyResource.strata);
 }
 
 /**
@@ -380,6 +397,10 @@ function validateStudySetup(studyResource) {
  */
 function validationErrorArms(redcapArms, randimiArms) {
     // Update the warning message
+    const titleId = "validation-arms-do-not-match-title";
+    const titleElement = document.getElementById(titleId);
+    titleElement.textContent = internationalization[titleId][randimi.language];
+
     const textId = "validation-arms-do-not-match-text";
     let textContent = internationalization[textId][randimi.language];
     textContent = textContent.replace("$REDCAP_ARMS", redcapArms.join(", "));
@@ -394,6 +415,15 @@ function validationErrorArms(redcapArms, randimiArms) {
 }
 
 function validationErrorPseudonymHandling() {
+    // Update the warning message
+    const titleId = "validation-pseudonym-handling-title";
+    const titleElement = document.getElementById(titleId);
+    titleElement.textContent = internationalization[titleId][randimi.language];
+
+    const textId = "validation-pseudonym-handling-text";
+    const textElement = document.getElementById(textId);
+    textElement.textContent = internationalization[textId][randimi.language];
+
     // Show the alert
     const alertId = "validation-pseudonym-handling";
     const alertElement = document.getElementById(alertId);
@@ -407,6 +437,10 @@ function validationErrorPseudonymHandling() {
  */
 function validationErrorSites(redcapSites, randimiSites) {
     // Update the warning message
+    const titleId = "validation-sites-do-not-match-title";
+    const titleElement = document.getElementById(titleId);
+    titleElement.textContent = internationalization[titleId][randimi.language];
+
     const textId = "validation-sites-do-not-match-text";
     let textContent = internationalization[textId][randimi.language];
     textContent = textContent.replace("$REDCAP_DAGS", redcapSites.join(", "));
@@ -542,7 +576,7 @@ const internationalization = {
         "de_DE": "Validierung fehlgeschlagen"
     },
     "validation-sites-do-not-match-text": {
-        "en_US": `DAGs specified within REDCap ($REDCAP_DAGS) do not match the sites specified in RandIMI ($RANDIMI_SITES).`,
-        "de_DE": "DAGs in REDCap ($REDCAP_DAGS) stimmen nicht mit den Standorten in RandIMI ($RANDIMI_SITES) überein."
+        "en_US": `Not all DAGs specified within REDCap ($REDCAP_DAGS) are specified as sites in RandIMI ($RANDIMI_SITES).`,
+        "de_DE": "Nicht alles DAGs in REDCap ($REDCAP_DAGS) sind als Standort in RandIMI ($RANDIMI_SITES) hinterlegt."
     },
 };

@@ -1,7 +1,7 @@
 # RandIMI Integration Documentation
 
 ## Introduction
-The aim of this module is to integrate a running RandIMI instance into REDCap in order to facilitate the work with randomized clinical trials. This module provides an easy to use interface to the RandIMI service, handles all communication with it, and redirects the user automatically to a patients record page based on the resulting study arm returned by the RandIMI service.
+The aim of this module is to integrate a running [RandIMI](https://github.com/imi-ms/RandIMI) instance into REDCap in order to facilitate the work with randomized clinical trials. This module provides an easy to use interface to the RandIMI service, handles all communication with it, and redirects the user automatically to a patients record page based on the resulting study arm returned by the RandIMI service.
 
 ## Installation
 You can either install the module via the [REDCap Repository of External Modules](https://redcap.vanderbilt.edu/consortium/modules/index.php) (recommended) or by downloading all files from this Git repository and moving them to the `redcap/modules/randimi_integration_v1.0` directory manually. Please note that `v1.0` is just stated as an example, you can find the current version number [here](CHANGELOG.md). After that, you need to enable the module in the REDCap Control Center for your REDCap instance and for each project you want to use it with:
@@ -14,7 +14,9 @@ In order to upgrade your RandIMI Integration module, simply follow the same step
 ## Configuration
 After enabling the module, you need to configure it to your RandIMI instance. In your project, go to `External Modules -> RandIMI Integration -> Configure`. In the first field you can change the language of the rendered form that is used to access the RandIMI service. Currently, English and German are the supported languages. In the second field you need to specify the base URL of the RandIMI server. The third field takes the Study ID that you get from the RandIMI service. The fourth and fifth fields take the username and password for authentication. They were specified during the study setup in RandIMI.
 
-Please ensure that the names of both the Data Access Groups and Arms within REDCap are the same as specified within RandIMI. Otherwise a successful matching of these cannot take place.
+Please ensure that the names of both the Data Access Groups (DAGs) and Arms within REDCap are the same as the API IDs specified within RandIMI.
+Otherwise, a successful matching of these cannot take place.
+It is not necessary to add all sites specified in RandIMI as DAGs to the REDCap project, but for all DAGs matching sites have to be present in RandIMI.
 
 Additional stratifying fields that were configured within RandIMI do not have to be configured. The module queries these automatically and renders them accordingly.
 
@@ -33,6 +35,7 @@ Additional stratifying fields that were configured within RandIMI do not have to
 
 ## Usage
 After the configuration, the module can be used by opening the `RandIMI` page that appears in the left hand menu within REDCap under `External Modules`.
+In case the REDCap project and RandIMI project are not set up correctly, the module will display an error message.
 
 ## Authors
 
